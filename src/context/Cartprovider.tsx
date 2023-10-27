@@ -1,10 +1,9 @@
-import { useReducer } from "react";
-
+import {  ReactElement, createContext, useMemo, useReducer } from "react";
 
 export type cartItemType = {
   sku: string;
   name: string;
-  price: string;
+  price: number;
   qty: number;
 };
 
@@ -18,13 +17,18 @@ const REDUCER_ACTION_TYPE = {
   QUANTITY: "QUANTITY",
   SUBMIT: "SUBMIT",
 };
+
 export type ReducerActionType = typeof REDUCER_ACTION_TYPE;
 
 export type ReducerAction = {
-  type: string,
-  payload?: cartItemType,
+  type: string;
+  payload?: cartItemType;
 };
-const reducer = (state: cartItemType, action: ReducerAction): cartStateType => {
+
+const reducer = (
+  state: cartStateType,
+  action: ReducerAction
+): cartStateType => {
   switch (action.type) {
     case REDUCER_ACTION_TYPE.ADD: {
       if (!action.payload) {
@@ -36,24 +40,102 @@ const reducer = (state: cartItemType, action: ReducerAction): cartStateType => {
         (item) => item.sku !== sku
       );
 
-      const itemExists : cartItemType | undefined = state.cart.find( (item)  => item.sku === sku)
+      const itemExists: cartItemType | undefined = state.cart.find(
+        (item) => item.sku === sku
+      );
 
+      const qty: number = itemExists ? itemExists.qty + 1 : 1;
 
+      return { ...state, cart: [...filteredCart, { sku, name, price, qty }] };
     }
     case REDUCER_ACTION_TYPE.REMOVE: {
       if (!action.payload) {
         throw new Error("action.payload missing in REMOVE action");
       }
+      const { sku } = action.payload;
+      const filteredCart: cartItemType[] = state.cart.filter(
+        (item) => item.sku !== sku
+      );
+
+      return { ...state, cart: { ...filteredCart } };
     }
     case REDUCER_ACTION_TYPE.QUANTITY: {
       if (!action.payload) {
         throw new Error("action.payload missing in QUANTITY action");
       }
+
+      const { sku, qty } = action.payload;
+
+      const itemExists: cartItemType | undefined = state.cart.find(
+        (item) => item.sku === sku
+      );
+      if (!itemExists) {
+        throw new Error("item must exist in the order to update quantity");
+      }
+      const updatedItem: cartItemType = { ...itemExists, qty };
+
+      const filteredCart: cartItemType[] = state.cart.filter(
+        (item) => item.sku !== sku
+      );
+
+      return { ...state, cart: [...filteredCart, updatedItem] };
     }
     case REDUCER_ACTION_TYPE.SUBMIT: {
       return { ...state, cart: [] };
     }
     default:
-      throw new Error(" Unidetified  reducer action type");
+      throw new Error(" Undefined reducer action type");
   }
 };
+const useCartContext = (initCartState: cartStateType) => {
+  const [state, dispatch] = useReducer(reducer, initCartState);
+
+  const REDUCER_ACTIONS = useMemo(() => {
+    return REDUCER_ACTION_TYPE;
+  }, []);
+
+  const totalItems: number = state.cart.reduce((previousValue, cartItem) => {
+    return previousValue + cartItem.qty;
+  }, 0);
+
+  const totalPrice = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(
+    state.cart.reduce((previousValue, cartItem) => {
+      return previousValue + (cartItem.qty * cartItem.price);
+    }, 0)
+  );
+
+  const cart = state.cart.sort((a, b) => {
+    const itemA = Number(a.sku.slice(-4));
+    const itemB = Number(b.sku.slice(-4));
+
+    return itemA - itemB;
+  });
+
+  return { dispatch, REDUCER_ACTIONS, totalItems, totalPrice, cart }; 
+};
+
+export type useCartContextType = ReturnType<typeof useCartContext>
+
+const initCartContextState:useCartContextType = {
+    dispatch: () => {},
+    REDUCER_ACTIONS: REDUCER_ACTION_TYPE,
+    totalItems:0,
+    totalPrice:'',
+    cart: [],
+}
+export const cartContext = createContext<useCartContextType>(initCartContextState)
+
+type ChildrenType ={children ? : ReactElement | ReactElement[]}
+
+
+export const cartProvider = ( { children }: ChildrenType ):ReactElement=>{
+    return (
+        <cartContext.Provider value={useCartContext(initCartState)}>
+            {children}
+        </cartContext.Provider>
+        )
+}
+export default cartContext

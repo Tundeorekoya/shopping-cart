@@ -1,12 +1,26 @@
-
+import Cart from "./components/Cart";
+import Footer from "./components/Footer";
+import Header from "./components/Header";
+import ProductList from "./components/ProductList";
+import { productsProvider } from "./context/ProductProvider";
+import { useState } from "react";
 
 function App() {
+  const [viewCart, setViewCart] = useState<Boolean>(false);
 
-  return (
-   <div className="App">
+  const pageContent = viewCart ? <Cart/> : <ProductList/>
 
-   </div>
+  const content =(
+    <>
+    <Header viewCart={viewCart} setViewCart={setViewCart}/>
+
+    {pageContent}
+
+    <Footer viewCart={viewCart}/>
+    </>
   )
+
+  return content
 }
 
-export default App
+export default App;
