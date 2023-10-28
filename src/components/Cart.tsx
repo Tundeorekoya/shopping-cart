@@ -1,10 +1,46 @@
+import useCart from "../hooks/useCart";
+import { useState } from "react";
+import CartLineItem from "./cartLineItem";
 
 const Cart = () => {
-  return (
-    <div>
-      welcome
-    </div>
-  )
-}
+  const [confirm, setConfirm] = useState<boolean>(false);
+  const { dispatch, REDUCER_ACTIONS, totalItems, totalPrice, cart } = useCart();
 
-export default Cart
+  const onSubmitOrder = () => {
+    dispatch({ type: REDUCER_ACTIONS.SUBMIT });
+    setConfirm(true);
+  };
+  const pageContent = confirm ? (
+    <h2> Thank you for your Order.</h2>
+  ) : (
+    <>
+      <h2 className="offScreen">Cart</h2>
+      <ul className="cart">
+        {cart.map((item) => {
+          return (
+            <CartLineItem
+              key={item.sku}
+              item={item}
+              dispatch={dispatch}
+              REDUCER_ACTION={REDUCER_ACTIONS}
+            />
+          );
+        })}
+      </ul>
+
+      <div className="cart__totals">
+        <p>Total item: {totalItems}</p>
+        <p>Total Price: {totalPrice}</p>
+        <button className="cart__submit" disabled={!totalItems} onClick={onSubmitOrder}>
+          Place Order
+        </button>
+      </div>
+    </>
+   
+  );
+
+   const content = <main className="main main--cart">{pageContent}</main>;
+  return content
+};
+
+export default Cart;
